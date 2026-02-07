@@ -22,7 +22,6 @@ raggedy [OPTIONS] FILE [FILE...]
 
 Options:
   -b, --backup      Create .bak backup before editing
-  --mdtable         Also fix markdown tables
   --check           Exit 1 if changes needed (no modification; for CI)
   --diff            Show diff without modifying
   -h, --help        Show help
@@ -76,3 +75,14 @@ the latest local code is rebuilt and executed:
 ```bash
 uvx --from . --no-cache raggedy -b mantissa.md
 ```
+
+## AGENTS/Skills Usage
+
+If you drive `raggedy` via an `AGENTS.md` entry or a skills file, use `uvx`
+to run the local working tree explicitly. Example prompt:
+
+```
+Issue `uvx raggedy <file>` to fix ragged diagram edges in markdown.
+```
+
+See the full example in `skills.md`.

@@ -74,11 +74,3 @@ This is just text.
 No box-drawing chars here.
 Just plain content in a code block.
 ```
-
-## Ragged markdown table
-
-| Name | Description | Status |
-|---|---|---|
-| Alpha | The first thing | Active |
-| Beta | A second, longer item | Pending |
-| C | Short | Done |

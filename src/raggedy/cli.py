@@ -8,7 +8,6 @@ import shutil
 import sys
 
 from raggedy.diagram import fix_diagrams
-from raggedy.tables import fix_tables
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -26,11 +25,6 @@ def build_parser() -> argparse.ArgumentParser:
         "-b", "--backup",
         action="store_true",
         help="Create .bak backup before editing",
-    )
-    parser.add_argument(
-        "--mdtable",
-        action="store_true",
-        help="Also fix markdown tables",
     )
     parser.add_argument(
         "--check",
@@ -63,9 +57,6 @@ def main(argv: list[str] | None = None) -> None:
             sys.exit(2)
 
         fixed = fix_diagrams(original)
-        if args.mdtable:
-            fixed = fix_tables(fixed)
-
         if fixed != original:
             any_changes = True
 
