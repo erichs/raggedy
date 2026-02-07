@@ -67,3 +67,12 @@ Use `--check` in CI to enforce clean diagrams:
 ```bash
 raggedy --check docs/**/*.md
 ```
+
+## Local Development
+
+When running `raggedy` from the working tree via `uvx`, use `--no-cache` so
+the latest local code is rebuilt and executed:
+
+```bash
+uvx --from . --no-cache raggedy -b mantissa.md
+```
