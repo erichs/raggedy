@@ -27,8 +27,8 @@ def replace(path, pattern, repl):
         raise SystemExit(f"{path}: version string not found")
     open(path, "w", encoding="utf-8").write(new_data)
 
-replace("pyproject.toml", r'version\\s*=\\s*\"[^\"]+\"', f'version = "{version}"')
-replace("src/raggedy/__init__.py", r'__version__\\s*=\\s*\"[^\"]+\"', f'__version__ = "{version}"')
+replace("pyproject.toml", r'version\s*=\s*"[^"]+"', f'version = "{version}"')
+replace("src/raggedy/__init__.py", r'__version__\s*=\s*"[^"]+"', f'__version__ = "{version}"')
 PY
 
 git add pyproject.toml src/raggedy/__init__.py
