@@ -219,6 +219,31 @@ class TestFixDiagrams:
         result = fix_diagrams(text)
         assert not result.endswith("\n")
 
+    def test_fixes_nested_box_right_edge(self):
+        text = (
+            "```\n"
+            "┌───────────────────────────────────────────────────────────────────────┐\n"
+            "│  Correlation & Analytics                                              │\n"
+            "│  ┌──────────────────────────────────────────────────────────────────┐ │\n"
+            "│  │ Attack Paths │ Blast Radius │ Risk Scoring │ MITRE ATT&CK       │  │\n"
+            "│  │ Trust Graph  │ Toxic Combos │ Cross-Account│ Priv Escalation    │  │\n"
+            "│  └──────────────────────────────────────────────────────────────────┘ │\n"
+            "└───────────────────────────────────────────────────────────────────────┘\n"
+            "```\n"
+        )
+        expected = (
+            "```\n"
+            "┌───────────────────────────────────────────────────────────────────────┐\n"
+            "│  Correlation & Analytics                                              │\n"
+            "│  ┌──────────────────────────────────────────────────────────────────┐ │\n"
+            "│  │ Attack Paths │ Blast Radius │ Risk Scoring │ MITRE ATT&CK        │ │\n"
+            "│  │ Trust Graph  │ Toxic Combos │ Cross-Account│ Priv Escalation     │ │\n"
+            "│  └──────────────────────────────────────────────────────────────────┘ │\n"
+            "└───────────────────────────────────────────────────────────────────────┘\n"
+            "```\n"
+        )
+        assert fix_diagrams(text) == expected
+
     def test_multiple_diagrams(self):
         text = (
             "```\n"
@@ -240,6 +265,98 @@ class TestFixDiagrams:
         assert lines[2] == "│ A  │"
         assert lines[8] == "│ B    │"
         assert lines[10] == "│ C    │"
+
+    def test_nested_box_inner_edges_fixed(self):
+        """Inner boxes within an outer box should have aligned right edges."""
+        text = (
+            "```\n"
+            "┌──────────────────────────┐\n"
+            "│ Section A                │\n"
+            "│ ┌────────────────────┐│\n"
+            "│ │ inner long content ││\n"
+            "│ │ short              ││\n"
+            "│ └────────────────────┘│\n"
+            "├──────────────────────────┤\n"
+            "│ Section B                │\n"
+            "└──────────────────────────┘\n"
+            "```\n"
+        )
+        result = fix_diagrams(text)
+        lines = result.split("\n")
+
+        # All outer lines should be the same width
+        box_lines = lines[1:10]  # the 9 lines inside the fence
+        widths = [len(l) for l in box_lines]
+        assert len(set(widths)) == 1, f"outer widths not uniform: {widths}"
+
+        # Inner box right borders should all be at the same column
+        inner_top = lines[3]     # │ ┌────...┐ │
+        inner_row1 = lines[4]    # │ │ ...   │ │
+        inner_row2 = lines[5]    # │ │ ...   │ │
+        inner_bot = lines[6]     # │ └────...┘ │
+
+        # Strip outer │ borders to get inner content
+        def inner_right_pos(line):
+            inner = line[1:-1]  # strip outer │ ... │
+            return len(inner.rstrip())
+
+        assert inner_right_pos(inner_top) == inner_right_pos(inner_row1)
+        assert inner_right_pos(inner_top) == inner_right_pos(inner_row2)
+        assert inner_right_pos(inner_top) == inner_right_pos(inner_bot)
+
+    def test_nested_box_idempotent(self):
+        """Fixing a nested diagram twice should produce the same result."""
+        text = (
+            "```\n"
+            "┌─────────────────────┐\n"
+            "│ Outer               │\n"
+            "│ ┌───────────────┐│\n"
+            "│ │ inner content ││\n"
+            "│ └───────────────┘│\n"
+            "├─────────────────────┤\n"
+            "│ Footer              │\n"
+            "└─────────────────────┘\n"
+            "```\n"
+        )
+        first = fix_diagrams(text)
+        second = fix_diagrams(first)
+        assert first == second
+
+    def test_nested_multiple_inner_boxes(self):
+        """Multiple inner boxes at different vertical positions."""
+        text = (
+            "```\n"
+            "┌────────────────────┐\n"
+            "│ Top section        │\n"
+            "│ ┌──────────────┐│\n"
+            "│ │ box one      ││\n"
+            "│ └──────────────┘│\n"
+            "├────────────────────┤\n"
+            "│ Mid section        │\n"
+            "│ ┌──────────────┐│\n"
+            "│ │ box two      ││\n"
+            "│ └──────────────┘│\n"
+            "└────────────────────┘\n"
+            "```\n"
+        )
+        result = fix_diagrams(text)
+        lines = result.split("\n")
+
+        # Both inner boxes should have aligned borders
+        for row_idx in (4, 9):
+            inner_top = lines[row_idx - 1]
+            inner_content = lines[row_idx]
+            inner_bot = lines[row_idx + 1]
+
+            def irp(line):
+                return len(line[1:-1].rstrip())
+
+            assert irp(inner_top) == irp(inner_content), (
+                f"inner box at line {row_idx}: top vs content mismatch"
+            )
+            assert irp(inner_top) == irp(inner_bot), (
+                f"inner box at line {row_idx}: top vs bottom mismatch"
+            )
 
     def test_fixture_files(self):
         """Test that processing ragged.md produces expected.md."""

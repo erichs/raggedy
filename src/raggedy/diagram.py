@@ -227,6 +227,84 @@ def _fix_group(group: list[tuple[int, str]]) -> list[tuple[int, str]]:
 
         result.append((orig_idx, leading + fixed))
 
+    # After fixing the outer box, recursively fix nested boxes
+    result = _fix_nested_in_group(result)
+
+    return result
+
+
+def _fix_nested_in_group(
+    fixed_group: list[tuple[int, str]],
+) -> list[tuple[int, str]]:
+    """Fix nested boxes within the content lines of a fixed group.
+
+    After the outer box is fixed, content lines (│...│) may contain inner
+    box structures with their own ragged edges. This function detects and
+    fixes those inner boxes recursively.
+    """
+    result = list(fixed_group)
+
+    # Find runs of consecutive content lines (starting with │ or |)
+    i = 0
+    while i < len(result):
+        _, line = result[i]
+        stripped = line.lstrip()
+        if not stripped or stripped[0] not in ("│", "|"):
+            i += 1
+            continue
+
+        # Collect consecutive content lines with the same outer border char
+        outer_char = stripped[0]
+        outer_right = RIGHT_BORDER[outer_char]
+        run_start = i
+        while i < len(result):
+            _, l = result[i]
+            s = l.lstrip()
+            if s and s[0] == outer_char:
+                i += 1
+            else:
+                break
+        run_end = i
+
+        if run_end - run_start < 3:
+            continue  # Need at least 3 lines for a diagram
+
+        # Extract inner content by stripping the outer left and right border chars
+        run = result[run_start:run_end]
+        inner_lines = []
+        for _, l in run:
+            # Line is: <outer_left><inner_content><outer_right>
+            # Strip the first and last character (outer borders)
+            if len(l) >= 2 and l[-1] == outer_right:
+                inner_lines.append(l[1:-1])
+            else:
+                inner_lines.append(l[1:])
+
+        # Check if inner content contains a diagram
+        if not _is_diagram_block(inner_lines):
+            continue
+
+        # The outer box width (all lines same width after outer fix)
+        outer_width = len(run[0][1])
+        inner_width = outer_width - 2  # minus two outer border chars
+
+        # Fix inner diagram groups
+        inner_groups = _split_groups(inner_lines)
+        for inner_group in inner_groups:
+            inner_fixed = _fix_group(inner_group)  # recursive via _fix_group
+            for inner_idx, inner_text in inner_fixed:
+                # Re-pad inner text to maintain outer box width
+                if len(inner_text) < inner_width:
+                    inner_text += " " * (inner_width - len(inner_text))
+                elif len(inner_text) > inner_width:
+                    # Inner content exceeds outer constraint; skip
+                    continue
+
+                # Re-assemble with outer borders
+                new_line = run[0][1][0] + inner_text + outer_right
+                actual_idx = run_start + inner_idx
+                result[actual_idx] = (result[actual_idx][0], new_line)
+
     return result
 
 
