@@ -1,6 +1,13 @@
 #!/bin/bash
 set -euo pipefail
 
+if [[ -n "$(git status --porcelain)" ]]; then
+  echo "Working tree is dirty. Commit or stash changes before release."
+  exit 1
+fi
+
+make test
+
 read -p "Release version (e.g., 0.1.2): " VERSION
 if [[ -z "${VERSION}" ]]; then
   echo "Version is required."
